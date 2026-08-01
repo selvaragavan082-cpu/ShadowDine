@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -39,7 +39,7 @@ const BookTable = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const fetchHotelDetails = async () => {
+  const fetchHotelDetails = useCallback(async () => {
     try {
       const res = await axios.get(`http://localhost:5000/api/hotels/${hotelId}`);
       if (res.data.success || res.data) {
@@ -48,11 +48,11 @@ const BookTable = () => {
     } catch (err) {
       console.error('Fetch Hotel Error:', err);
     }
-  };
+  }, [hotelId]);
 
   useEffect(() => {
     fetchHotelDetails();
-  }, [hotelId]);
+  }, [fetchHotelDetails]);
 
   const handleAddToCart = (item) => {
     setCart((prevCart) => {
@@ -413,6 +413,21 @@ const BookTable = () => {
                 <option value="12:30 PM (Lunch)" style={{ color: '#000' }}>12:30 PM (Lunch)</option>
                 <option value="07:30 PM (Dinner)" style={{ color: '#000' }}>07:30 PM (Dinner)</option>
               </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Event Type:</label>
+              <select value={eventType} onChange={(e) => setEventType(e.target.value)} style={inputStyle}>
+                <option value="Casual Dining" style={{ color: '#000' }}>Casual Dining</option>
+                <option value="Birthday Party" style={{ color: '#000' }}>Birthday Party</option>
+                <option value="Anniversary" style={{ color: '#000' }}>Anniversary</option>
+                <option value="Business Lunch" style={{ color: '#000' }}>Business Lunch</option>
+              </select>
+            </div>
+
+            <div style={{ gridColumn: 'span 2' }}>
+              <label style={labelStyle}>Special Requests:</label>
+              <input type="text" placeholder="e.g. Window seat, Candlelight setup" value={specialRequest} onChange={(e) => setSpecialRequest(e.target.value)} style={inputStyle} />
             </div>
 
             <button
