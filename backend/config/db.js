@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Set Google Public DNS to resolve MongoDB Atlas SRV records reliably
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch (e) {
+  console.warn('⚠️ Could not set custom DNS servers:', e.message);
+}
 
 const connectDB = async () => {
   const rawUri = process.env.MONGO_URI ? process.env.MONGO_URI.trim() : '';
