@@ -14,10 +14,14 @@ dotenv.config();
 
 const app = express();
 
+// Robust CORS configuration to allow Vercel frontend & credentials
 app.use(cors({
-  origin: '*',
-  credentials: true
+  origin: (origin, callback) => callback(null, true),
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 app.get('/', (req, res) => {
