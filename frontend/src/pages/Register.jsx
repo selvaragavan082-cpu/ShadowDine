@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
+import OtpInput from '../components/OtpInput';
 
 const Register = () => {
   const navigate = useNavigate();
 
   // Form States
-  const [step, setStep] = useState(1); // Step 1: User Info & OTP | Step 2: Verify OTP
+  const [step, setStep] = useState(1); // 1: User Details | 2: Enter OTP
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('customer'); // Default 'customer' or 'admin'
+  const [role, setRole] = useState('customer');
   const [otp, setOtp] = useState('');
 
   const [loading, setLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
   // 1. Send OTP for Registration
   const handleSendOtp = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!name.trim()) {
       setMessage({ type: 'error', text: 'Please enter your full name.' });
       return;
     }
     if (!phone || phone.length < 10) {
-      setMessage({ type: 'error', text: 'Please enter a valid 10-digit phone number.' });
+      setMessage({ type: 'error', text: 'Please enter a valid 10-digit mobile number.' });
       return;
     }
 
@@ -34,24 +36,43 @@ const Register = () => {
     try {
       const res = await axios.post('http://localhost:5000/api/auth/send-otp', { phone });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'OTP sent to your mobile! (Test OTP: 1234)' });
-        setStep(2); // Move to OTP verification step
+        setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
+        setStep(2);
       }
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Failed to send OTP. Please try again.'
+        text: err.response?.data?.message || 'Failed to send verification code.'
       });
     } finally {
       setLoading(false);
     }
   };
 
+  // Resend OTP Handler
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    setMessage({ type: '', text: '' });
+    try {
+      const res = await axios.post('http://localhost:5000/api/auth/send-otp', { phone });
+      if (res.data.success) {
+        setMessage({ type: 'success', text: 'A new verification code has been sent.' });
+      }
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to resend code.'
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   // 2. Verify OTP & Complete Registration
-  const handleVerifyOtp = async (e) => {
-    e.preventDefault();
-    if (!otp) {
-      setMessage({ type: 'error', text: 'Please enter the OTP.' });
+  const handleVerifyOtp = async (otpCode) => {
+    const codeToVerify = otpCode || otp;
+    if (!codeToVerify || codeToVerify.length < 4) {
+      setMessage({ type: 'error', text: 'Please enter all digits of the verification code.' });
       return;
     }
 
@@ -64,29 +85,27 @@ const Register = () => {
         phone,
         email: email || null,
         role,
-        otp
+        otp: codeToVerify
       });
 
       if (res.data.success) {
-        // LocalStorage-il Token and User Details-a save panroam
         localStorage.setItem('token', res.data.token);
         localStorage.setItem('user', JSON.stringify(res.data.user));
 
-        setMessage({ type: 'success', text: '🎉 Account Registered Successfully! Redirecting...' });
+        setMessage({ type: 'success', text: 'Account registered successfully. Redirecting...' });
 
-        // 🔀 Role-Based Navigation
         setTimeout(() => {
           if (res.data.user?.role === 'admin') {
-            navigate('/admin-dashboard'); // Redirect to Admin Page
+            navigate('/admin-dashboard');
           } else {
-            navigate('/'); // Redirect to Customer Home Page
+            navigate('/');
           }
-        }, 1200);
+        }, 1000);
       }
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Invalid or Expired OTP.'
+        text: err.response?.data?.message || 'Invalid or expired verification code.'
       });
     } finally {
       setLoading(false);
@@ -96,246 +115,239 @@ const Register = () => {
   return (
     <div
       style={{
-        maxWidth: '450px',
-        margin: '50px auto',
-        padding: '30px',
-        backgroundColor: '#ffffff',
-        borderRadius: '12px',
-        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)',
-        fontFamily: 'Arial, sans-serif'
+        minHeight: '80vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px'
       }}
     >
-      <h2 style={{ textAlign: 'center', marginBottom: '8px', color: '#111' }}>
-        Create ShadowDine Account 🍽️
-      </h2>
-      <p style={{ textAlign: 'center', color: '#666', fontSize: '14px', marginBottom: '24px' }}>
-        {step === 1 ? 'Fill details to get started' : 'Verify your mobile number'}
-      </p>
-
-      {/* Alert Notification */}
-      {message.text && (
-        <div
-          style={{
-            padding: '12px',
-            borderRadius: '8px',
-            marginBottom: '20px',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            textAlign: 'center',
-            backgroundColor: message.type === 'success' ? '#d4edda' : '#f8d7da',
-            color: message.type === 'success' ? '#155724' : '#721c24',
-            border: `1px solid ${message.type === 'success' ? '#c3e6cb' : '#f5c6cb'}`
-          }}
-        >
-          {message.text}
+      <div
+        style={{
+          width: '100%',
+          maxWidth: '460px',
+          padding: '36px',
+          background: 'rgba(30, 41, 59, 0.7)',
+          backdropFilter: 'blur(16px)',
+          borderRadius: '24px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)',
+          color: '#F8FAFC'
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <span style={{ fontSize: '32px' }}>👑</span>
+          <h2 style={{ margin: '8px 0 4px', fontSize: '24px', fontWeight: '900', color: '#FFF' }}>
+            {step === 1 ? 'Create ShadowDine Account' : 'Enter OTP Digits'}
+          </h2>
+          <p style={{ margin: 0, color: '#94A3B8', fontSize: '14px' }}>
+            {step === 1
+              ? 'Complete your profile to get started'
+              : `Code sent to +91 ${phone}`}
+          </p>
         </div>
-      )}
 
-      {/* STEP 1: USER DETAILS FORM */}
-      {step === 1 && (
-        <form onSubmit={handleSendOtp}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Full Name: <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. Ragavan"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #ccc',
-                fontSize: '15px',
-                boxSizing: 'border-box'
-              }}
-            />
+        {/* Alert Notifications */}
+        {message.text && (
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: '12px',
+              marginBottom: '24px',
+              fontSize: '14px',
+              fontWeight: '600',
+              textAlign: 'center',
+              backgroundColor: message.type === 'success' ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+              color: message.type === 'success' ? '#4ADE80' : '#F87171',
+              border: `1px solid ${message.type === 'success' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`
+            }}
+          >
+            {message.text}
           </div>
+        )}
 
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Phone Number (+91): <span style={{ color: 'red' }}>*</span>
-            </label>
-            <input
-              type="tel"
-              placeholder="Enter 10-digit Phone Number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-              maxLength={10}
+        {/* STEP 1: USER DETAILS FORM */}
+        {step === 1 && (
+          <form onSubmit={handleSendOtp}>
+            <div style={{ marginBottom: '18px' }}>
+              <label style={labelStyle}>
+                Full Name <span style={{ color: '#EF4444' }}>*</span>
+              </label>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={labelStyle}>
+                Mobile Number <span style={{ color: '#EF4444' }}>*</span>
+              </label>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <span
+                  style={{
+                    padding: '14px',
+                    background: 'rgba(15, 23, 42, 0.8)',
+                    border: '1px solid rgba(255, 255, 255, 0.15)',
+                    borderRadius: '12px',
+                    color: '#94A3B8',
+                    fontWeight: '700',
+                    fontSize: '15px'
+                  }}
+                >
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  placeholder="10-digit Mobile Number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  maxLength={10}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '18px' }}>
+              <label style={labelStyle}>Email Address (Optional):</label>
+              <input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                style={inputStyle}
+              />
+            </div>
+
+            <div style={{ marginBottom: '28px' }}>
+              <label style={labelStyle}>Account Role:</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                style={{
+                  ...inputStyle,
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="customer" style={{ color: '#000' }}>Customer (Dining & Pre-Orders)</option>
+                <option value="admin" style={{ color: '#000' }}>Restaurant Admin (Console & Menu Management)</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
               style={{
                 width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #ccc',
-                fontSize: '15px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Email Address (Optional):
-            </label>
-            <input
-              type="email"
-              placeholder="e.g. ragavan@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #ccc',
-                fontSize: '15px',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* ROLE SELECTOR */}
-          <div style={{ marginBottom: '22px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Register As:
-            </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #ccc',
-                fontSize: '15px',
-                backgroundColor: '#fff',
-                boxSizing: 'border-box',
-                fontWeight: 'bold'
+                padding: '16px',
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                color: '#0F172A',
+                border: 'none',
+                borderRadius: '14px',
+                fontWeight: '800',
+                fontSize: '16px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                boxShadow: '0 4px 20px rgba(245, 158, 11, 0.35)'
               }}
             >
-              <option value="customer">Customer 👤 (Table Booking & Food Order)</option>
-              <option value="admin">Restaurant Admin ⚙️ (Manage Menu & Bookings)</option>
-            </select>
-          </div>
+              {loading ? 'Sending Verification Code...' : 'Get Verification Code ✨'}
+            </button>
 
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: '#007bff',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Sending OTP...' : 'Continue & Get OTP 📲'}
-          </button>
-        </form>
-      )}
+            <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '14px', color: '#94A3B8' }}>
+              Already have an account?{' '}
+              <Link to="/login" style={{ color: '#F59E0B', fontWeight: '700', textDecoration: 'none' }}>
+                Sign In
+              </Link>
+            </div>
+          </form>
+        )}
 
-      {/* STEP 2: VERIFY OTP FORM */}
-      {step === 2 && (
-        <form onSubmit={handleVerifyOtp}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Confirm Phone:
-            </label>
-            <input
-              type="text"
-              value={`+91 ${phone} (${role.toUpperCase()})`}
-              disabled
+        {/* STEP 2: MINIMAL & FOCUSED OTP INPUT SCREEN */}
+        {step === 2 && (
+          <div>
+            <OtpInput
+              length={6}
+              onChange={(val) => setOtp(val)}
+              onComplete={(val) => handleVerifyOtp(val)}
+              onResend={handleResendOtp}
+              isResending={isResending}
+            />
+
+            <button
+              type="button"
+              onClick={() => handleVerifyOtp()}
+              disabled={loading || otp.length < 6}
+              style={{
+                width: '100%',
+                padding: '16px',
+                marginTop: '24px',
+                background: otp.length === 6 ? 'linear-gradient(135deg, #22C55E 0%, #15803D 100%)' : 'rgba(255, 255, 255, 0.1)',
+                color: '#FFF',
+                border: 'none',
+                borderRadius: '14px',
+                fontWeight: '800',
+                fontSize: '16px',
+                cursor: loading || otp.length < 6 ? 'not-allowed' : 'pointer',
+                boxShadow: otp.length === 6 ? '0 4px 20px rgba(34, 197, 94, 0.35)' : 'none',
+                transition: 'all 0.3s'
+              }}
+            >
+              {loading ? 'Creating Account...' : 'Complete Registration'}
+            </button>
+
+
+            <button
+              type="button"
+              onClick={() => {
+                setStep(1);
+                setOtp('');
+                setMessage({ type: '', text: '' });
+              }}
               style={{
                 width: '100%',
                 padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #e0e0e0',
-                backgroundColor: '#f8f9fa',
-                fontSize: '15px',
-                boxSizing: 'border-box',
-                color: '#666'
+                marginTop: '12px',
+                background: 'transparent',
+                color: '#94A3B8',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600'
               }}
-            />
+            >
+              ← Edit Account Details
+            </button>
           </div>
-
-          <div style={{ marginBottom: '22px' }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', fontSize: '14px', color: '#333' }}>
-              Enter 4-Digit OTP:
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. 1234"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-              maxLength={6}
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '2px solid #28a745',
-                fontSize: '18px',
-                letterSpacing: '4px',
-                textAlign: 'center',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: '#28a745',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              marginBottom: '12px'
-            }}
-          >
-            {loading ? 'Creating Account...' : 'Complete Registration 🎉'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            style={{
-              width: '100%',
-              padding: '10px',
-              backgroundColor: 'transparent',
-              color: '#6c757d',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              textDecoration: 'underline'
-            }}
-          >
-            Edit Registration Info
-          </button>
-        </form>
-      )}
-
-      {/* LOGIN LINK */}
-      <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#555' }}>
-        Already have an account?{' '}
-        <Link to="/login" style={{ color: '#007bff', fontWeight: 'bold', textDecoration: 'none' }}>
-          Login here
-        </Link>
+        )}
       </div>
     </div>
   );
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '14px 16px',
+  background: 'rgba(15, 23, 42, 0.8)',
+  border: '1px solid rgba(255, 255, 255, 0.15)',
+  borderRadius: '12px',
+  color: '#FFF',
+  fontSize: '15px',
+  outline: 'none',
+  boxSizing: 'border-box'
+};
+
+const labelStyle = {
+  display: 'block',
+  fontWeight: '700',
+  marginBottom: '8px',
+  fontSize: '13px',
+  color: '#CBD5E1',
+  letterSpacing: '0.5px'
 };
 
 export default Register;

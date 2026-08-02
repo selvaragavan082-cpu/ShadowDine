@@ -5,11 +5,11 @@ import jwt from 'jsonwebtoken';
 export const sendOtp = async (req, res) => {
   try {
     const { phone } = req.body;
-    if (!phone || phone.length !== 10) {
+    if (!phone || phone.length < 10) {
       return res.status(400).json({ success: false, message: 'Enter a valid 10-digit mobile number' });
     }
 
-    const otp = '123456';
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     let user = await User.findOne({ phone });
@@ -21,6 +21,13 @@ export const sendOtp = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
+    console.log('\n==============================================');
+    console.log('📲 [SMS GATEWAY SIMULATOR]');
+    console.log(`Phone Number : +91 ${phone}`);
+    console.log(`Generated OTP: ${otp}`);
+    console.log(`Timestamp    : ${new Date().toLocaleString()}`);
+    console.log('==============================================\n');
+
     res.status(200).json({
       success: true,
       message: 'OTP sent successfully!'
@@ -29,6 +36,7 @@ export const sendOtp = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
 
 // 2. Verify OTP & Register/Login Controller
 export const verifyOtp = async (req, res) => {

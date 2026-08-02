@@ -4,20 +4,24 @@ import Booking from '../models/Booking.js';
 export const createBooking = async (req, res) => {
   try {
     const { 
-      hotelId, 
+      hotelId,
+      hotelName,
       customerName, 
-      name, 
+      customerPhone,
       tablesCount, 
       guests, 
       eventType, 
+      seatingPreference,
       date, 
       time, 
-      seatingArea, 
-      specialRequest 
+      specialRequest,
+      orderedItems,
+      totalAmount
     } = req.body;
 
     const userId = req.user?.id || req.user?._id;
-    const finalCustomerName = customerName || name || req.user?.name || 'Guest User';
+    const finalCustomerName = customerName || req.user?.name || 'Guest User';
+    const finalCustomerPhone = customerPhone || req.user?.phone || '0000000000';
 
     if (!hotelId) {
       return res.status(400).json({
@@ -27,16 +31,20 @@ export const createBooking = async (req, res) => {
     }
 
     const newBooking = new Booking({
-      user: userId,
-      hotel: hotelId,
+      user: userId || null,
+      hotelId,
+      hotelName: hotelName || 'ShadowDine Dining',
       customerName: finalCustomerName,
+      customerPhone: finalCustomerPhone,
       tablesCount: Number(tablesCount) || 1,
       guests: Number(guests) || 1,
       eventType: eventType || 'Casual Dining',
+      seatingPreference: seatingPreference || 'AC Hall',
       date: date || new Date().toISOString().split('T')[0],
       time: time || '07:00 PM (Dinner)',
-      seatingArea: seatingArea || 'Indoor AC',
       specialRequest: specialRequest || '',
+      orderedItems: orderedItems || [],
+      totalAmount: Number(totalAmount) || 0,
       status: 'Confirmed'
     });
 
@@ -57,11 +65,12 @@ export const createBooking = async (req, res) => {
   }
 };
 
-// 2. Get User Bookings (Export missing-a irundhadhu, ippo add panniyaachu!)
+// 2. Get User Bookings
 export const getUserBookings = async (req, res) => {
   try {
     const userId = req.user?.id || req.user?._id;
-    const bookings = await Booking.find({ user: userId }).sort({ createdAt: -1 });
+    const query = userId ? { user: userId } : {};
+    const bookings = await Booking.find(query).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -73,4 +82,4 @@ export const getUserBookings = async (req, res) => {
       message: error.message || 'Failed to fetch bookings'
     });
   }
-};
+};

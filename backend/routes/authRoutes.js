@@ -12,8 +12,9 @@ router.post('/send-otp', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    const generatedOtp = '1234'; // Default test OTP
-    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+    // Generate random 6-digit OTP (100000 - 999999)
+    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins validity
 
     let user = await User.findOne({ phone });
 
@@ -26,14 +27,23 @@ router.post('/send-otp', async (req, res) => {
 
     await user.save();
 
+    // Console log for terminal output
+    console.log('\n==============================================');
+    console.log('📲 [SMS GATEWAY SIMULATOR]');
+    console.log(`Phone Number : +91 ${phone}`);
+    console.log(`Generated OTP: ${generatedOtp}`);
+    console.log(`Timestamp    : ${new Date().toLocaleString()}`);
+    console.log('==============================================\n');
+
     res.status(200).json({
       success: true,
-      message: 'OTP sent successfully! (Use 1234 for testing)'
+      message: 'OTP sent successfully!'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 
 // 2. VERIFY OTP & REGISTER/LOGIN ROUTE
 router.post('/verify-otp', async (req, res) => {
