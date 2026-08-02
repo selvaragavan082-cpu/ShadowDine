@@ -8,6 +8,7 @@ import './App.css';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import AiChatbot from './components/AiChatbot';
 
 // Pages
 import Home from './pages/Home';
@@ -44,6 +45,14 @@ function App() {
               }
             />
             <Route
+              path="/bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookings />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin-dashboard"
               element={
                 <ProtectedRoute adminOnly={true}>
@@ -71,6 +80,9 @@ function App() {
             <Route path="*" element={<Home />} />
           </Routes>
         </main>
+
+        {/* Global Floating Gemini AI Chatbot Widget */}
+        <AiChatbot />
 
         <Footer />
       </div>
