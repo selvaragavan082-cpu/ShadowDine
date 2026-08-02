@@ -14,13 +14,16 @@ dotenv.config();
 
 const app = express();
 
-// Robust CORS configuration to allow Vercel frontend & credentials
-app.use(cors({
-  origin: (origin, callback) => callback(null, true),
+// Dynamic CORS Implementation
+const corsOptions = {
+  origin: true, // Dynamically allow any origin (necessary for rapid fixes)
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
