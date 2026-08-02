@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 const BookTable = () => {
   const { hotelId } = useParams();
@@ -41,7 +42,7 @@ const BookTable = () => {
 
   const fetchHotelDetails = useCallback(async () => {
     try {
-      const res = await axios.get(`http://localhost:5000/api/hotels/${hotelId}`);
+      const res = await axios.get(`${API_BASE_URL}/hotels/${hotelId}`);
       if (res.data.success || res.data) {
         setHotel(res.data.hotel || res.data);
       }
@@ -100,7 +101,7 @@ const BookTable = () => {
   const handleAddDish = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(`http://localhost:5000/api/hotels/${hotelId}/menu`, {
+      const res = await axios.post(`${API_BASE_URL}/hotels/${hotelId}/menu`, {
         itemName: newDishName,
         price: newDishPrice,
         category: newDishCategory || 'Chef Special',
@@ -126,7 +127,7 @@ const BookTable = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:5000/api/bookings', {
+      const res = await axios.post(`${API_BASE_URL}/bookings`, {
         hotelId,
         hotelName: hotel?.name || 'ShadowDine VIP Restaurant',
         customerName,
@@ -142,6 +143,7 @@ const BookTable = () => {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
+
 
       if (res.data.success || res.data) {
         setMessage('🎉 Platinum VIP Reservation Confirmed Successfully!');

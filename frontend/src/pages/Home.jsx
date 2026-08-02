@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ const Home = () => {
   useEffect(() => {
     const fetchHotels = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/hotels');
+        const res = await axios.get(`${API_BASE_URL}/hotels`);
         if (res.data.success || Array.isArray(res.data)) {
           setHotels(res.data.hotels || res.data);
         }
@@ -23,6 +24,7 @@ const Home = () => {
     };
     fetchHotels();
   }, []);
+
 
   const filteredHotels = hotels.filter((h) =>
     h.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

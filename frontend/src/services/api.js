@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+export const API_BASE_URL = (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || 'https://shadowdine-1.onrender.com/api';
+
 const API = axios.create({
-  baseURL: (typeof process !== 'undefined' && process.env && process.env.REACT_APP_API_BASE_URL) || 'http://localhost:5000/api',
+  baseURL: API_BASE_URL,
 });
 
 API.interceptors.request.use((req) => {
@@ -12,4 +14,4 @@ API.interceptors.request.use((req) => {
   return req;
 });
 
-export default API;
+export default API;

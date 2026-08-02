@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../services/api';
 
 const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -9,7 +10,7 @@ const MyBookings = () => {
     const fetchBookings = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://localhost:5000/api/bookings/my-bookings', {
+        const res = await axios.get(`${API_BASE_URL}/bookings/my-bookings`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.success || Array.isArray(res.data)) {
@@ -23,6 +24,7 @@ const MyBookings = () => {
     };
     fetchBookings();
   }, []);
+
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#0F172A', color: '#F8FAFC', padding: '40px 20px' }}>

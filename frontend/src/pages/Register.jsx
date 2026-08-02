@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import OtpInput from '../components/OtpInput';
+import { API_BASE_URL } from '../services/api';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ const Register = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/send-otp', { phone });
+      const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
         setStep(2);
@@ -54,7 +55,7 @@ const Register = () => {
     setIsResending(true);
     setMessage({ type: '', text: '' });
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/send-otp', { phone });
+      const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
       if (res.data.success) {
         setMessage({ type: 'success', text: 'A new verification code has been sent.' });
       }
@@ -80,13 +81,14 @@ const Register = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/verify-otp', {
+      const res = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
         name,
         phone,
         email: email || null,
         role,
         otp: codeToVerify
       });
+
 
       if (res.data.success) {
         localStorage.setItem('token', res.data.token);
