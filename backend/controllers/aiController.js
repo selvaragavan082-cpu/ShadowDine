@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const askGemini = async (req, res) => {
+export const handleChat = async (req, res) => {
   try {
     const { message, prompt } = req.body;
     const userQuery = message || prompt;
@@ -18,7 +18,7 @@ export const askGemini = async (req, res) => {
       });
     }
 
-    // Direct Gemini REST API Call to avoid SDK method mismatch errors
+    // Direct Gemini REST API Call using v1beta endpoint to avoid SDK method mismatch errors
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
       const response = await axios.post(url, {
@@ -59,3 +59,5 @@ export const askGemini = async (req, res) => {
     });
   }
 };
+
+export const askGemini = handleChat;
