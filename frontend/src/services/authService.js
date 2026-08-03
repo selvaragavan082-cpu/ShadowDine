@@ -9,9 +9,9 @@ export const setupRecaptcha = (containerId = "recaptcha-container") => {
   }
 
   window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-    size: "invisible",
+    size: "normal",
     callback: (response) => {
-      console.log("reCAPTCHA solved, sending SMS...");
+      console.log("reCAPTCHA verified, sending SMS code now...");
     }
   });
 
@@ -20,31 +20,31 @@ export const setupRecaptcha = (containerId = "recaptcha-container") => {
 
 export const sendOTP = async (phoneNumber) => {
   try {
-    // Standardize phone number with +91 country code
     const cleanNum = phoneNumber.replace(/[^0-9]/g, "");
     const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
       ? `+${cleanNum}` 
       : `+91${cleanNum.slice(-10)}`;
 
-    // Clear previous recaptcha instances
     if (window.recaptchaVerifier) {
       try { window.recaptchaVerifier.clear(); } catch(e) {}
       window.recaptchaVerifier = null;
     }
 
-    // Visible or Invisible Recaptcha setup
+    // Explicitly rendered Visible Recaptcha Box
     window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
-      size: "invisible",
+      size: "normal",
       callback: (response) => {
-        console.log("reCAPTCHA solved, sending SMS...");
+        console.log("reCAPTCHA verified, sending SMS code now...");
       }
     });
+
+    await window.recaptchaVerifier.render();
 
     const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
     window.confirmationResult = confirmationResult;
     return confirmationResult;
   } catch (error) {
-    console.error("Real SMS OTP Error:", error);
+    console.error("Firebase Real SMS Error Details:", error);
     throw error;
   }
 };
