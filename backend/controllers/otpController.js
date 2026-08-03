@@ -16,7 +16,7 @@ if (apiKey && apiSecret && accountSid) {
 
 const otpStore = {};
 
-// Send Verification Code via Twilio Verify / SMS API (Logged to terminal only, hidden from API JSON)
+// Send Verification Code via Twilio Verify / SMS API (Printed in VS Code Terminal & returned in devOtp JSON for alert)
 export const sendOTP = async (req, res) => {
   try {
     const phoneNumber = req.body.phoneNumber || req.body.phone;
@@ -28,8 +28,10 @@ export const sendOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[cleanPhone] = otp;
 
-    // Log OTP strictly to backend terminal for developer inspection
+    // Log OTP clearly in VS Code Terminal
+    console.log(`\n========================================`);
     console.log(`🔑 SHADOWDINE GENERATED OTP FOR ${cleanPhone}: ${otp}`);
+    console.log(`========================================\n`);
 
     if (client) {
       try {
@@ -55,7 +57,8 @@ export const sendOTP = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Verification code sent successfully to your mobile number."
+      message: "OTP sent successfully!",
+      devOtp: otp
     });
   } catch (error) {
     console.error("Verify API Error:", error);

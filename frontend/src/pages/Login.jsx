@@ -51,7 +51,10 @@ const Login = () => {
       const data = await response.json();
 
       if (data.success) {
-        setStep(2); // Switch screen to OTP input
+        if (data.devOtp) {
+          alert(`Your OTP Code is: ${data.devOtp}`);
+        }
+        setStep(2); // Switch screen to OTP input after alert
         setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
       } else {
         setMessage({ type: 'error', text: data.error || data.message || "Error sending verification code" });
@@ -82,6 +85,9 @@ const Login = () => {
       });
 
       if (res.data.success) {
+        if (res.data.devOtp) {
+          alert(`Your OTP Code is: ${res.data.devOtp}`);
+        }
         setMessage({ type: 'success', text: 'A new verification code has been sent to your mobile number.' });
       }
     } catch (err) {
