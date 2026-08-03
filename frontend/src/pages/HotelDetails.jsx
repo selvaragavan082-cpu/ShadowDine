@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import API from '../services/api';
+import RestaurantMap from '../components/RestaurantMap';
 
 export default function HotelDetails() {
   const { id } = useParams();
@@ -15,14 +16,17 @@ export default function HotelDetails() {
       .catch((err) => console.error(err));
   }, [id]);
 
-  if (!restaurant) return <div style={{ padding: '30px' }}>Loading...</div>;
+  if (!restaurant) return <div style={{ padding: '30px', color: '#FFF' }}>Loading...</div>;
 
   return (
-    <div style={{ padding: '30px' }}>
+    <div style={{ padding: '30px', maxWidth: '1000px', margin: '0 auto' }}>
       <h1>{restaurant.name}</h1>
       <p>📍 {restaurant.address}, {restaurant.city}</p>
       
-      <hr style={{ margin: '20px 0' }} />
+      {/* GEOLOCATION & NEARBY MAP */}
+      <RestaurantMap address={`${restaurant.address}, ${restaurant.city}`} restaurantName={restaurant.name} />
+
+      <hr style={{ margin: '30px 0' }} />
       <h2>🍽️ Menu & Dishes</h2>
 
       {restaurant.dishes.length === 0 ? (
@@ -41,8 +45,8 @@ export default function HotelDetails() {
 
       <br />
       <Link to={`/book/${restaurant._id}`} state={{ restaurant }}>
-        <button style={{ padding: '10px 20px', background: '#ff6b6b', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '16px' }}>
-          Reserve Table Now
+        <button style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)', color: '#0F172A', border: 'none', borderRadius: '30px', cursor: 'pointer', fontSize: '16px', fontWeight: '800' }}>
+          Reserve Table Now ✨
         </button>
       </Link>
     </div>
