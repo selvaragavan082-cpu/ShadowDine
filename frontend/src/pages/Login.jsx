@@ -10,7 +10,7 @@ const Login = () => {
   // State Management
   const [step, setStep] = useState(1); // 1: Request OTP | 2: Enter OTP
   const [phone, setPhone] = useState('');
-  const [name, setName] = useState('');
+  const [name, setName] = useState('ragavan');
   const [otp, setOtp] = useState('');
   
   const [loading, setLoading] = useState(false);
@@ -20,29 +20,41 @@ const Login = () => {
   // 1. Send Real SMS OTP via Twilio Backend API
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
+    
+    // Clear previous validation errors
+    setMessage({ type: '', text: '' });
+
     if (!phone || phone.length < 10) {
       setMessage({ type: 'error', text: 'Please enter a valid 10-digit mobile number.' });
       return;
     }
 
     setLoading(true);
-    setMessage({ type: '', text: '' });
 
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+    const cleanNum = phone.replace(/[^0-9]/g, "");
+    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
+      ? `+${cleanNum}` 
+      : `+91${cleanNum.slice(-10)}`;
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { phoneNumber: formattedPhone, phone: formattedPhone });
+      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { 
+        phoneNumber: formattedPhone, 
+        phone: formattedPhone,
+        name: name || "ragavan",
+        username: name || "ragavan"
+      });
+
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
         setStep(2);
       } else {
-        throw new Error(res.data.message || 'Failed to send OTP via Twilio');
+        throw new Error(res.data.message || res.data.error || 'Failed to send OTP via Twilio');
       }
     } catch (err) {
       console.error('Twilio Send OTP Error:', err);
       setMessage({
         type: 'error',
-        text: err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to send verification code.'
+        text: err.response?.data?.error || err.response?.data?.message || err.message || 'Server connection failed. Make sure backend is running.'
       });
     } finally {
       setLoading(false);
@@ -53,9 +65,20 @@ const Login = () => {
   const handleResendOtp = async () => {
     setIsResending(true);
     setMessage({ type: '', text: '' });
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
+    const cleanNum = phone.replace(/[^0-9]/g, "");
+    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
+      ? `+${cleanNum}` 
+      : `+91${cleanNum.slice(-10)}`;
+
     try {
-      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { phoneNumber: formattedPhone, phone: formattedPhone });
+      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { 
+        phoneNumber: formattedPhone, 
+        phone: formattedPhone,
+        name: name || "ragavan",
+        username: name || "ragavan"
+      });
+
       if (res.data.success) {
         setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
       }
@@ -79,7 +102,11 @@ const Login = () => {
 
     setLoading(true);
     setMessage({ type: '', text: '' });
-    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
+    const cleanNum = phone.replace(/[^0-9]/g, "");
+    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
+      ? `+${cleanNum}` 
+      : `+91${cleanNum.slice(-10)}`;
 
     try {
       const verifyRes = await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
@@ -96,12 +123,12 @@ const Login = () => {
       const authRes = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
         phone,
         otp: codeToVerify,
-        name: name.trim() || 'VIP Guest'
+        name: name.trim() || 'ragavan'
       }).catch(() => null);
 
       const user = authRes?.data?.user || {
         phone,
-        name: name.trim() || 'VIP Guest',
+        name: name.trim() || 'ragavan',
         role: 'user'
       };
 
