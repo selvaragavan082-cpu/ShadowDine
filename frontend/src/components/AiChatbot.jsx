@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../services/api';
-import { chatWithGemini } from '../services/aiService';
+import { getFoodRecommendation } from '../services/aiService';
 
 const AiChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -43,7 +43,7 @@ const AiChatbot = () => {
     } catch (err) {
       console.error('API Chat Error:', err);
       try {
-        const aiReply = await chatWithGemini(userText);
+        const aiReply = await getFoodRecommendation(userText);
         setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
       } catch (geminiErr) {
         console.error('Gemini AI Direct Error:', geminiErr);
