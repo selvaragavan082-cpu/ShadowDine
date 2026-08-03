@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import axios from 'axios';
 
 export const askGemini = async (req, res) => {
   try {
-    const { message, prompt, chatHistory } = req.body;
+    const { message, prompt } = req.body;
     const userQuery = message || prompt;
 
     if (!userQuery) {
@@ -14,50 +14,48 @@ export const askGemini = async (req, res) => {
     if (!apiKey) {
       return res.json({
         success: true,
-        reply: `Regarding "${userQuery}", I am ShadowDine AI. I can help you reserve tables at Taj Gateway Heritage, explore royal feasts, or suggest signature dishes!`
+        reply: "ShadowDine AI system initialized! Ask me about fine dining, tables, or special menus."
       });
     }
 
+    // Direct Gemini REST API Call to avoid SDK method mismatch errors
     try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: "You are ShadowDine AI, an intelligent luxury fine-dining reservation assistant. Provide concise, helpful, and varied answers tailored directly to the user's specific question."
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const response = await axios.post(url, {
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `You are ShadowDine AI, a friendly fine dining assistant for ShadowDine restaurant platform. Respond directly, natural, dynamically, and concisely in English or Tanglish according to the user message: "${userQuery}"`
+              }
+            ]
+          }
+        ]
       });
 
-      // Format past context history for multi-turn conversational chat
-      const formattedHistory = (chatHistory || [])
-        .filter(item => item.text && (item.sender === 'user' || item.sender === 'ai' || item.sender === 'model'))
-        .map(item => ({
-          role: item.sender === 'user' ? 'user' : 'model',
-          parts: [{ text: item.text }]
-        }));
+      const replyText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
-      const chat = model.startChat({
-        history: formattedHistory
-      });
-
-      const result = await chat.sendMessage(userQuery);
-      const response = await result.response;
-      const responseText = response.text();
-
+      if (replyText) {
+        return res.json({ success: true, reply: replyText });
+      } else {
+        return res.json({
+          success: true,
+          reply: `Taj Gateway Heritage and top fine dining options are available for booking near you at ShadowDine!`
+        });
+      }
+    } catch (apiErr) {
+      console.error("Gemini Direct API Error Details:", apiErr?.response?.data || apiErr.message);
       return res.json({
         success: true,
-        reply: responseText
-      });
-    } catch (error) {
-      console.error("Gemini AI Dynamic Chat Error:", error.message);
-      // Dynamic fallback tailored to the user's specific question
-      return res.json({
-        success: true,
-        reply: `Regarding "${userQuery}", I can assist you with table bookings, gourmet menu recommendations, or special VIP dining requests at ShadowDine!`
+        reply: "We have exclusive fine dining options like Taj Gateway Heritage in Pasumalai, Madurai available for table reservations."
       });
     }
   } catch (error) {
-    console.error("AI Controller Outer Error:", error);
+    console.error("AI Controller Error:", error);
     return res.json({
       success: true,
-      reply: "I am ready to help! You can ask about our special menu, Pasumalai Taj Gateway Heritage, or book a table."
+      reply: "Welcome to ShadowDine! I can assist you with dining options and table reservations."
     });
   }
 };
