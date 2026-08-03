@@ -2,44 +2,57 @@ import { auth } from "../firebase";
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import API from './api';
 
-// Setup invisible reCAPTCHA on the specified container
 export const setupRecaptcha = (containerId = "recaptcha-container") => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-      size: "invisible",
-      callback: (response) => {
-        console.log("reCAPTCHA verified successfully:", response);
-      },
-      "expired-callback": () => {
-        console.warn("reCAPTCHA expired, please try again.");
-      }
-    });
+  // Clear existing verifier if any to avoid duplication errors
+  if (window.recaptchaVerifier) {
+    try {
+      window.recaptchaVerifier.clear();
+    } catch (e) {
+      console.log("Clearing old recaptcha");
+    }
+    window.recaptchaVerifier = null;
   }
+
+  window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+    size: "invisible",
+    callback: (response) => {
+      console.log("reCAPTCHA solved successfully");
+    },
+    "expired-callback": () => {
+      console.warn("reCAPTCHA expired, please try again.");
+    }
+  });
+
   return window.recaptchaVerifier;
 };
 
-// Send OTP SMS to the given phone number (Format: +919876543210)
 export const sendOTP = async (phoneNumber, containerId = "recaptcha-container") => {
   try {
+    const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
     const appVerifier = setupRecaptcha(containerId);
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-    window.confirmationResult = confirmationResult; // Save to global scope for easy access
+    
+    const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+    window.confirmationResult = confirmationResult;
     return confirmationResult;
   } catch (error) {
     console.error("Firebase Send OTP Error:", error);
+    // Reset recaptcha on error so user can retry immediately
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch(e){}
+      window.recaptchaVerifier = null;
+    }
     throw error;
   }
 };
 
-// Verify the OTP code entered by the user
 export const verifyOTP = async (otpCode, confirmationResultObj = null) => {
   try {
     const confirmation = confirmationResultObj || window.confirmationResult;
     if (!confirmation) {
-      throw new Error("No active OTP request found. Please request a new OTP.");
+      throw new Error("No active OTP session found.");
     }
     const result = await confirmation.confirm(otpCode);
-    return result.user; // Returns authenticated user object
+    return result.user;
   } catch (error) {
     console.error("Firebase Verify OTP Error:", error);
     throw error;
