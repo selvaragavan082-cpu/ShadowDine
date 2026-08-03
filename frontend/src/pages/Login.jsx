@@ -20,11 +20,18 @@ const Login = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
-    // Cleanup reCAPTCHA DOM elements safely on unmount
     return () => {
-      const recaptchaBadge = document.querySelector('.grecaptcha-badge');
-      if (recaptchaBadge && recaptchaBadge.parentNode) {
-        recaptchaBadge.parentNode.removeChild(recaptchaBadge);
+      // Safely cleanup reCAPTCHA badge and window objects on unmount
+      const badge = document.querySelector('.grecaptcha-badge');
+      if (badge && badge.parentNode) {
+        badge.parentNode.removeChild(badge);
+      }
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          console.warn("reCAPTCHA clear error:", e);
+        }
       }
     };
   }, []);
