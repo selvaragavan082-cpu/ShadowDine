@@ -32,13 +32,21 @@ const AiChatbot = () => {
     const userText = input.trim();
     setInput('');
 
+    // Save current message history before adding current query
+    const previousHistory = [...messages];
+
     // Append user message
     setMessages((prev) => [...prev, { sender: 'user', text: userText }]);
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/ai/chat`, { message: userText, prompt: userText });
-      const aiReply = res.data?.reply || res.data?.message || 'Welcome to ShadowDine! I can help you reserve tables at Taj Gateway Heritage, explore royal feasts, or suggest signature dishes.';
+      const res = await axios.post(`${API_BASE_URL}/ai/chat`, {
+        message: userText,
+        prompt: userText,
+        chatHistory: previousHistory
+      });
+
+      const aiReply = res.data?.reply || res.data?.message || `Regarding "${userText}", I can assist you with dining options and table reservations!`;
       setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
     } catch (err) {
       console.error('API Chat Error:', err);
@@ -51,7 +59,7 @@ const AiChatbot = () => {
           ...prev,
           {
             sender: 'ai',
-            text: 'I am ready to help! You can ask about our special menu, Pasumalai Taj Gateway Heritage, or book a table.'
+            text: `Regarding "${userText}", I can help you with table bookings, menu details, or special requests at ShadowDine!`
           }
         ]);
       }
