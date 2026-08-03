@@ -1,5 +1,3 @@
-import axios from 'axios';
-
 export const API_BASE_URL = process.env.REACT_APP_BACKEND_URL 
   ? (process.env.REACT_APP_BACKEND_URL.endsWith('/api') 
       ? process.env.REACT_APP_BACKEND_URL 
@@ -8,16 +6,4 @@ export const API_BASE_URL = process.env.REACT_APP_BACKEND_URL
       ? 'https://shadowdine-1.onrender.com/api' 
       : 'http://localhost:5000/api');
 
-const API = axios.create({
-  baseURL: API_BASE_URL,
-});
-
-API.interceptors.request.use((req) => {
-  const token = localStorage.getItem('token') || localStorage.getItem('userToken');
-  if (token) {
-    req.headers.Authorization = `Bearer ${token}`;
-  }
-  return req;
-});
-
-export default API;
+export default API_BASE_URL;

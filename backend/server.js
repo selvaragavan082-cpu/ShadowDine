@@ -15,16 +15,13 @@ dotenv.config();
 
 const app = express();
 
-// Dynamic CORS Implementation
-const corsOptions = {
-  origin: true, // Dynamically allow any origin (necessary for rapid fixes)
-  credentials: true,
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+// CORS Configuration for Render / External Domain Deployment
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-};
-app.use(cors(corsOptions));
+  credentials: true
+}));
 
 app.use(express.json());
 
@@ -50,10 +47,8 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
-// Start Express HTTP Server independently so health checks pass on Render
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
 });
 
-// Asynchronously connect to MongoDB without blocking server launch or crashing on failure
 connectDB();
