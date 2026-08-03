@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import OtpInput from '../components/OtpInput';
@@ -7,6 +7,7 @@ import { sendOTP, verifyOTP } from '../services/authService';
 
 const Login = () => {
   const navigate = useNavigate();
+  const recaptchaRef = useRef(null);
 
   // State Management
   const [step, setStep] = useState(1); // 1: Request OTP | 2: Enter OTP
@@ -17,6 +18,16 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  useEffect(() => {
+    // Cleanup reCAPTCHA DOM elements safely on unmount
+    return () => {
+      const recaptchaBadge = document.querySelector('.grecaptcha-badge');
+      if (recaptchaBadge && recaptchaBadge.parentNode) {
+        recaptchaBadge.parentNode.removeChild(recaptchaBadge);
+      }
+    };
+  }, []);
 
   // 1. Send OTP Handler
   const handleSendOtp = async (e) => {
@@ -158,8 +169,8 @@ const Login = () => {
         padding: '20px'
       }}
     >
-      {/* Invisible reCAPTCHA container required for Firebase Phone Auth */}
-      <div id="recaptcha-container"></div>
+      {/* reCAPTCHA container div with valid ID and ref */}
+      <div id="recaptcha-container" ref={recaptchaRef}></div>
 
       <div
         style={{

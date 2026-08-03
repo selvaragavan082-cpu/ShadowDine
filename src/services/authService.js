@@ -3,6 +3,12 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import API from './api';
 
 export const setupRecaptcha = (containerId = "recaptcha-container") => {
+  const container = document.getElementById(containerId);
+  if (!container) {
+    console.warn(`reCAPTCHA container with id "${containerId}" not found in DOM.`);
+    return null;
+  }
+
   if (window.recaptchaVerifier) {
     try { window.recaptchaVerifier.clear(); } catch (e) {}
     window.recaptchaVerifier = null;
@@ -20,6 +26,12 @@ export const setupRecaptcha = (containerId = "recaptcha-container") => {
 
 export const sendOTP = async (phoneNumber) => {
   try {
+    const container = document.getElementById("recaptcha-container");
+    if (!container) {
+      console.warn("reCAPTCHA container element not ready in DOM.");
+      return null;
+    }
+
     const cleanNum = phoneNumber.replace(/[^0-9]/g, "");
     const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
       ? `+${cleanNum}` 
@@ -30,7 +42,7 @@ export const sendOTP = async (phoneNumber) => {
       window.recaptchaVerifier = null;
     }
 
-    // Explicitly rendered Visible Recaptcha Box
+    // Explicitly rendered Visible Recaptcha Box with safety checks
     window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
       size: "normal",
       callback: (response) => {
@@ -38,7 +50,9 @@ export const sendOTP = async (phoneNumber) => {
       }
     });
 
-    await window.recaptchaVerifier.render();
+    if (window.recaptchaVerifier && typeof window.recaptchaVerifier.render === 'function') {
+      await window.recaptchaVerifier.render();
+    }
 
     const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
     window.confirmationResult = confirmationResult;
@@ -57,7 +71,7 @@ export const verifyOTP = async (otpCode) => {
   return result.user;
 };
 
-// Backend Twilio API Helpers
+// Backend API Helpers
 export const sendOtpAPI = (phoneNumber) => API.post('/otp/send-otp', { phoneNumber, phone: phoneNumber });
 export const verifyOtpAPI = (phoneNumber, otp) => API.post('/otp/verify-otp', { phoneNumber, phone: phoneNumber, otp });
 export const loginAPI = (data) => API.post('/auth/login', data);
