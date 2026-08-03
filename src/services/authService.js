@@ -3,60 +3,58 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 import API from './api';
 
 export const setupRecaptcha = (containerId = "recaptcha-container") => {
-  // Clear existing verifier if any to avoid duplication errors
   if (window.recaptchaVerifier) {
-    try {
-      window.recaptchaVerifier.clear();
-    } catch (e) {
-      console.log("Clearing old recaptcha");
-    }
+    try { window.recaptchaVerifier.clear(); } catch (e) {}
     window.recaptchaVerifier = null;
   }
 
   window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: "invisible",
     callback: (response) => {
-      console.log("reCAPTCHA solved successfully");
-    },
-    "expired-callback": () => {
-      console.warn("reCAPTCHA expired, please try again.");
+      console.log("reCAPTCHA solved, sending SMS...");
     }
   });
 
   return window.recaptchaVerifier;
 };
 
-export const sendOTP = async (phoneNumber, containerId = "recaptcha-container") => {
+export const sendOTP = async (phoneNumber) => {
   try {
-    const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+91${phoneNumber}`;
-    const appVerifier = setupRecaptcha(containerId);
-    
-    const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+    // Standardize phone number with +91 country code
+    const cleanNum = phoneNumber.replace(/[^0-9]/g, "");
+    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
+      ? `+${cleanNum}` 
+      : `+91${cleanNum.slice(-10)}`;
+
+    // Clear previous recaptcha instances
+    if (window.recaptchaVerifier) {
+      try { window.recaptchaVerifier.clear(); } catch(e) {}
+      window.recaptchaVerifier = null;
+    }
+
+    // Visible or Invisible Recaptcha setup
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: (response) => {
+        console.log("reCAPTCHA solved, sending SMS...");
+      }
+    });
+
+    const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, window.recaptchaVerifier);
     window.confirmationResult = confirmationResult;
     return confirmationResult;
   } catch (error) {
-    console.error("Firebase Send OTP Error:", error);
-    // Reset recaptcha on error so user can retry immediately
-    if (window.recaptchaVerifier) {
-      try { window.recaptchaVerifier.clear(); } catch(e){}
-      window.recaptchaVerifier = null;
-    }
+    console.error("Real SMS OTP Error:", error);
     throw error;
   }
 };
 
-export const verifyOTP = async (otpCode, confirmationResultObj = null) => {
-  try {
-    const confirmation = confirmationResultObj || window.confirmationResult;
-    if (!confirmation) {
-      throw new Error("No active OTP session found.");
-    }
-    const result = await confirmation.confirm(otpCode);
-    return result.user;
-  } catch (error) {
-    console.error("Firebase Verify OTP Error:", error);
-    throw error;
+export const verifyOTP = async (otpCode) => {
+  if (!window.confirmationResult) {
+    throw new Error("No active OTP request found.");
   }
+  const result = await window.confirmationResult.confirm(otpCode);
+  return result.user;
 };
 
 // Backend API Helpers
