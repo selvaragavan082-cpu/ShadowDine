@@ -1,13 +1,11 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import OtpInput from '../components/OtpInput';
 import { API_BASE_URL } from '../services/api';
-import { sendOTP, verifyOTP } from '../services/authService';
 
 const Login = () => {
   const navigate = useNavigate();
-  const recaptchaRef = useRef(null);
 
   // State Management
   const [step, setStep] = useState(1); // 1: Request OTP | 2: Enter OTP
@@ -19,24 +17,7 @@ const Login = () => {
   const [isResending, setIsResending] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
-  useEffect(() => {
-    return () => {
-      // Safely cleanup reCAPTCHA badge and window objects on unmount
-      const badge = document.querySelector('.grecaptcha-badge');
-      if (badge && badge.parentNode) {
-        badge.parentNode.removeChild(badge);
-      }
-      if (window.recaptchaVerifier) {
-        try {
-          window.recaptchaVerifier.clear();
-        } catch (e) {
-          console.warn("reCAPTCHA clear error:", e);
-        }
-      }
-    };
-  }, []);
-
-  // 1. Send OTP Handler
+  // 1. Send Real SMS OTP via Twilio Backend API
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     if (!phone || phone.length < 10) {
@@ -50,7 +31,6 @@ const Login = () => {
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
     try {
-      // Primary: Twilio Real SMS OTP via Backend
       const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { phoneNumber: formattedPhone, phone: formattedPhone });
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
@@ -58,24 +38,18 @@ const Login = () => {
       } else {
         throw new Error(res.data.message || 'Failed to send OTP via Twilio');
       }
-    } catch (backendErr) {
-      console.warn('Twilio backend OTP failed/fallback to Firebase:', backendErr);
-      try {
-        await sendOTP(formattedPhone);
-        setMessage({ type: 'success', text: 'Verification SMS sent to your phone.' });
-        setStep(2);
-      } catch (err) {
-        setMessage({
-          type: 'error',
-          text: backendErr.response?.data?.error || backendErr.response?.data?.message || err.message || 'Failed to send verification code.'
-        });
-      }
+    } catch (err) {
+      console.error('Twilio Send OTP Error:', err);
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to send verification code.'
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend OTP Handler
+  // Resend Real SMS OTP Handler
   const handleResendOtp = async () => {
     setIsResending(true);
     setMessage({ type: '', text: '' });
@@ -85,22 +59,17 @@ const Login = () => {
       if (res.data.success) {
         setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
       }
-    } catch (backendErr) {
-      try {
-        await sendOTP(formattedPhone);
-        setMessage({ type: 'success', text: 'A new verification SMS has been sent.' });
-      } catch (err) {
-        setMessage({
-          type: 'error',
-          text: backendErr.response?.data?.error || 'Failed to resend code.'
-        });
-      }
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.error || err.response?.data?.message || 'Failed to resend code.'
+      });
     } finally {
       setIsResending(false);
     }
   };
 
-  // 2. Verify OTP Handler
+  // 2. Verify OTP Handler via Twilio Backend API
   const handleVerifyOtp = async (otpCode) => {
     const codeToVerify = otpCode || otp;
     if (!codeToVerify || codeToVerify.length < 4) {
@@ -113,20 +82,14 @@ const Login = () => {
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
     try {
-      // Primary: Verify via Twilio Backend /api/otp/verify-otp
-      try {
-        await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
-          phoneNumber: formattedPhone,
-          phone: formattedPhone,
-          otp: codeToVerify
-        });
-      } catch (twilioErr) {
-        console.warn('Twilio verification skipped/fallback to Firebase/Auth:', twilioErr);
-        try {
-          await verifyOTP(codeToVerify);
-        } catch (fbErr) {
-          console.warn('Firebase verify error:', fbErr);
-        }
+      const verifyRes = await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
+        phoneNumber: formattedPhone,
+        phone: formattedPhone,
+        otp: codeToVerify
+      });
+
+      if (!verifyRes.data.success) {
+        throw new Error(verifyRes.data.message || 'Invalid OTP Code');
       }
 
       // Session registration & token generation
@@ -176,9 +139,6 @@ const Login = () => {
         padding: '20px'
       }}
     >
-      {/* reCAPTCHA container div with valid ID and ref */}
-      <div id="recaptcha-container" ref={recaptchaRef}></div>
-
       <div
         style={{
           width: '100%',
