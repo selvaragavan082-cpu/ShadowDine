@@ -16,7 +16,7 @@ if (apiKey && apiSecret && accountSid) {
 
 const otpStore = {};
 
-// Send Verification Code via Twilio Verify API with fallback
+// Send Verification Code via Twilio Verify / SMS API (Logged to terminal only, hidden from API JSON)
 export const sendOTP = async (req, res) => {
   try {
     const phoneNumber = req.body.phoneNumber || req.body.phone;
@@ -28,18 +28,17 @@ export const sendOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     otpStore[cleanPhone] = otp;
 
+    // Log OTP strictly to backend terminal for developer inspection
     console.log(`🔑 SHADOWDINE GENERATED OTP FOR ${cleanPhone}: ${otp}`);
-
-    let verificationResult = null;
 
     if (client) {
       try {
         const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID || ("VA" + (accountSid ? accountSid.substring(2, 32) : ""));
-        verificationResult = await client.verify.v2
+        await client.verify.v2
           .services(verifyServiceSid)
           .verifications.create({ to: cleanPhone, channel: "sms" });
       } catch (verifyErr) {
-        console.warn("Twilio Verify Service fallback to Messaging/DevOtp:", verifyErr.message);
+        console.warn("Twilio Verify Service fallback to Messaging:", verifyErr.message);
         if (twilioNumber) {
           try {
             await client.messages.create({
@@ -54,11 +53,9 @@ export const sendOTP = async (req, res) => {
       }
     }
 
-    res.json({
+    return res.json({
       success: true,
-      message: "Verification code sent!",
-      devOtp: verificationResult?.devOtp || otp,
-      status: verificationResult?.status || "pending"
+      message: "Verification code sent successfully to your mobile number."
     });
   } catch (error) {
     console.error("Verify API Error:", error);
@@ -66,7 +63,7 @@ export const sendOTP = async (req, res) => {
   }
 };
 
-// Verify Verification Code via Twilio Verify API with fallback
+// Verify Verification Code via Twilio Verify API / memory store
 export const verifyOTP = async (req, res) => {
   const phoneNumber = req.body.phoneNumber || req.body.phone;
   const otp = req.body.otp;

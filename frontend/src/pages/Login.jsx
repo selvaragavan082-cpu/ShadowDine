@@ -49,24 +49,16 @@ const Login = () => {
       });
 
       const data = await response.json();
-      console.log("Twilio OTP Response:", data);
 
       if (data.success) {
         setStep(2); // Switch screen to OTP input
-        if (data.devOtp) {
-          setMessage({ type: 'success', text: `OTP Generated! Code: ${data.devOtp}` });
-          alert(`OTP Generated! Code: ${data.devOtp}`);
-        } else {
-          setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
-        }
+        setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
       } else {
-        setMessage({ type: 'error', text: data.error || data.message || "Error sending OTP" });
-        alert(data.error || data.message || "Error sending OTP");
+        setMessage({ type: 'error', text: data.error || data.message || "Error sending verification code" });
       }
     } catch (err) {
       console.error("Network Error:", err);
-      setMessage({ type: 'error', text: "Backend Server running-ல் உள்ளதா என உறுதிப்படுத்தவும் (localhost:5000)" });
-      alert("Backend Server running-ல் உள்ளதா என உறுதிப்படுத்தவும் (localhost:5000)");
+      setMessage({ type: 'error', text: "Backend Server connection failed. Please ensure server is running." });
     } finally {
       setLoading(false);
     }
@@ -90,17 +82,12 @@ const Login = () => {
       });
 
       if (res.data.success) {
-        if (res.data.devOtp) {
-          setMessage({ type: 'success', text: `A new OTP has been generated! Code: ${res.data.devOtp}` });
-          alert(`OTP Generated! Code: ${res.data.devOtp}`);
-        } else {
-          setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
-        }
+        setMessage({ type: 'success', text: 'A new verification code has been sent to your mobile number.' });
       }
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.error || err.response?.data?.message || 'Failed to resend code.'
+        text: err.response?.data?.error || err.response?.data?.message || 'Failed to resend verification code.'
       });
     } finally {
       setIsResending(false);
