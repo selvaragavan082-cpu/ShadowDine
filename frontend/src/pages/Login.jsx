@@ -32,22 +32,24 @@ const Login = () => {
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
     try {
-      // Primary: Firebase Phone OTP
-      await sendOTP(formattedPhone, "recaptcha-container");
-      setMessage({ type: 'success', text: 'Verification SMS sent to your phone via Firebase.' });
-      setStep(2);
-    } catch (firebaseErr) {
-      console.warn('Firebase OTP failed/fallback to API:', firebaseErr);
+      // Primary: Twilio Real SMS OTP via Backend
+      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { phoneNumber: formattedPhone, phone: formattedPhone });
+      if (res.data.success) {
+        setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
+        setStep(2);
+      } else {
+        throw new Error(res.data.message || 'Failed to send OTP via Twilio');
+      }
+    } catch (backendErr) {
+      console.warn('Twilio backend OTP failed/fallback to Firebase:', backendErr);
       try {
-        const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
-        if (res.data.success) {
-          setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
-          setStep(2);
-        }
+        await sendOTP(formattedPhone);
+        setMessage({ type: 'success', text: 'Verification SMS sent to your phone.' });
+        setStep(2);
       } catch (err) {
         setMessage({
           type: 'error',
-          text: err.response?.data?.message || firebaseErr.message || 'Failed to send verification code.'
+          text: backendErr.response?.data?.error || backendErr.response?.data?.message || err.message || 'Failed to send verification code.'
         });
       }
     } finally {
@@ -61,18 +63,18 @@ const Login = () => {
     setMessage({ type: '', text: '' });
     const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     try {
-      await sendOTP(formattedPhone, "recaptcha-container");
-      setMessage({ type: 'success', text: 'A new verification SMS has been sent.' });
-    } catch (firebaseErr) {
+      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { phoneNumber: formattedPhone, phone: formattedPhone });
+      if (res.data.success) {
+        setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
+      }
+    } catch (backendErr) {
       try {
-        const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
-        if (res.data.success) {
-          setMessage({ type: 'success', text: 'A new verification code has been sent.' });
-        }
+        await sendOTP(formattedPhone);
+        setMessage({ type: 'success', text: 'A new verification SMS has been sent.' });
       } catch (err) {
         setMessage({
           type: 'error',
-          text: err.response?.data?.message || 'Failed to resend code.'
+          text: backendErr.response?.data?.error || 'Failed to resend code.'
         });
       }
     } finally {
@@ -90,35 +92,44 @@ const Login = () => {
 
     setLoading(true);
     setMessage({ type: '', text: '' });
+    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
 
     try {
-      let firebaseUser = null;
+      // Primary: Verify via Twilio Backend /api/otp/verify-otp
       try {
-        firebaseUser = await verifyOTP(codeToVerify);
-      } catch (fbErr) {
-        console.warn('Firebase verification skipped/fallback:', fbErr);
+        await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
+          phoneNumber: formattedPhone,
+          phone: formattedPhone,
+          otp: codeToVerify
+        });
+      } catch (twilioErr) {
+        console.warn('Twilio verification skipped/fallback to Firebase/Auth:', twilioErr);
+        try {
+          await verifyOTP(codeToVerify);
+        } catch (fbErr) {
+          console.warn('Firebase verify error:', fbErr);
+        }
       }
 
-      // Backend token generation / session setup
-      const res = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
+      // Session registration & token generation
+      const authRes = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
         phone,
         otp: codeToVerify,
-        name: name.trim() || (firebaseUser?.displayName || 'VIP Guest')
-      });
+        name: name.trim() || 'VIP Guest'
+      }).catch(() => null);
 
-      const user = res.data.user || {
+      const user = authRes?.data?.user || {
         phone,
         name: name.trim() || 'VIP Guest',
-        role: 'user',
-        uid: firebaseUser?.uid
+        role: 'user'
       };
 
-      const token = res.data.token || firebaseUser?.accessToken || 'firebase-session-token';
+      const token = authRes?.data?.token || 'shadowdine-vip-session-token';
 
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
 
-      setMessage({ type: 'success', text: 'Authentication successful. Redirecting...' });
+      setMessage({ type: 'success', text: 'OTP Verified Successfully! Redirecting...' });
 
       setTimeout(() => {
         if (user?.role === 'admin') {

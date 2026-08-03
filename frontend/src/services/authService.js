@@ -57,9 +57,9 @@ export const verifyOTP = async (otpCode) => {
   return result.user;
 };
 
-// Backend API Helpers
-export const sendOtpAPI = (data) => API.post('/auth/send-otp', data);
-export const verifyOtpAPI = (data) => API.post('/auth/verify-otp', data);
+// Backend Twilio API Helpers
+export const sendOtpAPI = (phoneNumber) => API.post('/otp/send-otp', { phoneNumber, phone: phoneNumber });
+export const verifyOtpAPI = (phoneNumber, otp) => API.post('/otp/verify-otp', { phoneNumber, phone: phoneNumber, otp });
 export const loginAPI = (data) => API.post('/auth/login', data);
 export const registerAPI = (data) => API.post('/auth/register', data);
 export const getCurrentUserAPI = () => API.get('/auth/me');

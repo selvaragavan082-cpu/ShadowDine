@@ -9,6 +9,7 @@ import hotelRoutes from './routes/hotelRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import reservationRoutes from './routes/reservationRoutes.js';
 import restaurantRoutes from './routes/restaurantRoutes.js';
+import otpRoutes from './routes/otpRoutes.js';
 
 dotenv.config();
 
@@ -37,6 +38,7 @@ app.use('/api/hotels', hotelRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/reservations', reservationRoutes);
 app.use('/api/restaurants', restaurantRoutes);
+app.use('/api/otp', otpRoutes);
 
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.stack);
