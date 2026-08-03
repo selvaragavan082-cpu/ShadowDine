@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE_URL } from '../services/api';
+import { chatWithGemini } from '../services/aiService';
 
 const AiChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,14 +41,20 @@ const AiChatbot = () => {
       const aiReply = res.data?.reply || res.data?.message || 'I am here to help you reserve tables and pick fine dining options!';
       setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
     } catch (err) {
-      console.error('AI Chat Error:', err);
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: 'ai',
-          text: '🤖 I am experiencing a temporary connection hiccup, but I can recommend trying our Chef’s Signature Biryani and Truffle Pasta!'
-        }
-      ]);
+      console.error('API Chat Error:', err);
+      try {
+        const aiReply = await chatWithGemini(userText);
+        setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
+      } catch (geminiErr) {
+        console.error('Gemini AI Direct Error:', geminiErr);
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: 'ai',
+            text: '🤖 I am experiencing a temporary connection hiccup, but I can recommend trying our Chef’s Signature Biryani and Truffle Pasta!'
+          }
+        ]);
+      }
     } finally {
       setLoading(false);
     }
