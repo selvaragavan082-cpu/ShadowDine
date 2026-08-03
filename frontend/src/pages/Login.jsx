@@ -21,7 +21,7 @@ const Login = () => {
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     
-    // Clear previous validation errors
+    // Clear previous errors
     setMessage({ type: '', text: '' });
 
     if (!phone || phone.length < 10) {
@@ -31,31 +31,42 @@ const Login = () => {
 
     setLoading(true);
 
-    const cleanNum = phone.replace(/[^0-9]/g, "");
-    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
-      ? `+${cleanNum}` 
-      : `+91${cleanNum.slice(-10)}`;
+    // Clean phone number format
+    const cleanPhone = phone.startsWith("+91") 
+      ? phone 
+      : `+91${phone.replace(/[^0-9]/g, "")}`;
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { 
-        phoneNumber: formattedPhone, 
-        phone: formattedPhone,
-        name: name || "ragavan",
-        username: name || "ragavan"
+      const response = await fetch(`${API_BASE_URL}/otp/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          phoneNumber: cleanPhone,
+          phone: cleanPhone,
+          username: name || "ragavan",
+          name: name || "ragavan"
+        })
       });
 
-      if (res.data.success) {
-        setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
-        setStep(2);
+      const data = await response.json();
+      console.log("Twilio OTP Response:", data);
+
+      if (data.success) {
+        setStep(2); // Switch screen to OTP input
+        if (data.devOtp) {
+          setMessage({ type: 'success', text: `OTP Generated! Code: ${data.devOtp}` });
+          alert(`OTP Generated! Code: ${data.devOtp}`);
+        } else {
+          setMessage({ type: 'success', text: 'Real SMS OTP sent to your phone via Twilio!' });
+        }
       } else {
-        throw new Error(res.data.message || res.data.error || 'Failed to send OTP via Twilio');
+        setMessage({ type: 'error', text: data.error || data.message || "Error sending OTP" });
+        alert(data.error || data.message || "Error sending OTP");
       }
     } catch (err) {
-      console.error('Twilio Send OTP Error:', err);
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.error || err.response?.data?.message || err.message || 'Server connection failed. Make sure backend is running.'
-      });
+      console.error("Network Error:", err);
+      setMessage({ type: 'error', text: "Backend Server running-ல் உள்ளதா என உறுதிப்படுத்தவும் (localhost:5000)" });
+      alert("Backend Server running-ல் உள்ளதா என உறுதிப்படுத்தவும் (localhost:5000)");
     } finally {
       setLoading(false);
     }
@@ -66,21 +77,25 @@ const Login = () => {
     setIsResending(true);
     setMessage({ type: '', text: '' });
 
-    const cleanNum = phone.replace(/[^0-9]/g, "");
-    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
-      ? `+${cleanNum}` 
-      : `+91${cleanNum.slice(-10)}`;
+    const cleanPhone = phone.startsWith("+91") 
+      ? phone 
+      : `+91${phone.replace(/[^0-9]/g, "")}`;
 
     try {
       const res = await axios.post(`${API_BASE_URL}/otp/send-otp`, { 
-        phoneNumber: formattedPhone, 
-        phone: formattedPhone,
-        name: name || "ragavan",
-        username: name || "ragavan"
+        phoneNumber: cleanPhone, 
+        phone: cleanPhone,
+        username: name || "ragavan",
+        name: name || "ragavan"
       });
 
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
+        if (res.data.devOtp) {
+          setMessage({ type: 'success', text: `A new OTP has been generated! Code: ${res.data.devOtp}` });
+          alert(`OTP Generated! Code: ${res.data.devOtp}`);
+        } else {
+          setMessage({ type: 'success', text: 'A new Real SMS OTP has been sent via Twilio.' });
+        }
       }
     } catch (err) {
       setMessage({
@@ -103,15 +118,14 @@ const Login = () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
-    const cleanNum = phone.replace(/[^0-9]/g, "");
-    const formattedPhone = cleanNum.startsWith("91") && cleanNum.length === 12 
-      ? `+${cleanNum}` 
-      : `+91${cleanNum.slice(-10)}`;
+    const cleanPhone = phone.startsWith("+91") 
+      ? phone 
+      : `+91${phone.replace(/[^0-9]/g, "")}`;
 
     try {
       const verifyRes = await axios.post(`${API_BASE_URL}/otp/verify-otp`, {
-        phoneNumber: formattedPhone,
-        phone: formattedPhone,
+        phoneNumber: cleanPhone,
+        phone: cleanPhone,
         otp: codeToVerify
       });
 
@@ -121,13 +135,14 @@ const Login = () => {
 
       // Session registration & token generation
       const authRes = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
-        phone,
+        phone: cleanPhone,
         otp: codeToVerify,
-        name: name.trim() || 'ragavan'
+        name: name.trim() || 'ragavan',
+        username: name.trim() || 'ragavan'
       }).catch(() => null);
 
       const user = authRes?.data?.user || {
-        phone,
+        phone: cleanPhone,
         name: name.trim() || 'ragavan',
         role: 'user'
       };
