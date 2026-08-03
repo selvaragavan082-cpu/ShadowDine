@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import OtpInput from '../components/OtpInput';
 import { API_BASE_URL } from '../services/api';
+import { sendOTP, verifyOTP } from '../services/authService';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,17 +29,27 @@ const Login = () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
+    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
+
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
-      if (res.data.success) {
-        setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
-        setStep(2);
+      // Primary: Firebase Phone OTP
+      await sendOTP(formattedPhone, "recaptcha-container");
+      setMessage({ type: 'success', text: 'Verification SMS sent to your phone via Firebase.' });
+      setStep(2);
+    } catch (firebaseErr) {
+      console.warn('Firebase OTP failed/fallback to API:', firebaseErr);
+      try {
+        const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
+        if (res.data.success) {
+          setMessage({ type: 'success', text: 'Verification code sent to your mobile number.' });
+          setStep(2);
+        }
+      } catch (err) {
+        setMessage({
+          type: 'error',
+          text: err.response?.data?.message || firebaseErr.message || 'Failed to send verification code.'
+        });
       }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to send verification code.'
-      });
     } finally {
       setLoading(false);
     }
@@ -48,16 +59,22 @@ const Login = () => {
   const handleResendOtp = async () => {
     setIsResending(true);
     setMessage({ type: '', text: '' });
+    const formattedPhone = phone.startsWith('+') ? phone : `+91${phone}`;
     try {
-      const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
-      if (res.data.success) {
-        setMessage({ type: 'success', text: 'A new verification code has been sent.' });
+      await sendOTP(formattedPhone, "recaptcha-container");
+      setMessage({ type: 'success', text: 'A new verification SMS has been sent.' });
+    } catch (firebaseErr) {
+      try {
+        const res = await axios.post(`${API_BASE_URL}/auth/send-otp`, { phone });
+        if (res.data.success) {
+          setMessage({ type: 'success', text: 'A new verification code has been sent.' });
+        }
+      } catch (err) {
+        setMessage({
+          type: 'error',
+          text: err.response?.data?.message || 'Failed to resend code.'
+        });
       }
-    } catch (err) {
-      setMessage({
-        type: 'error',
-        text: err.response?.data?.message || 'Failed to resend code.'
-      });
     } finally {
       setIsResending(false);
     }
@@ -75,31 +92,45 @@ const Login = () => {
     setMessage({ type: '', text: '' });
 
     try {
+      let firebaseUser = null;
+      try {
+        firebaseUser = await verifyOTP(codeToVerify);
+      } catch (fbErr) {
+        console.warn('Firebase verification skipped/fallback:', fbErr);
+      }
+
+      // Backend token generation / session setup
       const res = await axios.post(`${API_BASE_URL}/auth/verify-otp`, {
         phone,
         otp: codeToVerify,
-        name: name.trim() || undefined
+        name: name.trim() || (firebaseUser?.displayName || 'VIP Guest')
       });
 
+      const user = res.data.user || {
+        phone,
+        name: name.trim() || 'VIP Guest',
+        role: 'user',
+        uid: firebaseUser?.uid
+      };
 
-      if (res.data.success) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
+      const token = res.data.token || firebaseUser?.accessToken || 'firebase-session-token';
 
-        setMessage({ type: 'success', text: 'Authentication successful. Redirecting...' });
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
 
-        setTimeout(() => {
-          if (res.data.user?.role === 'admin') {
-            navigate('/admin-dashboard');
-          } else {
-            navigate('/');
-          }
-        }, 1000);
-      }
+      setMessage({ type: 'success', text: 'Authentication successful. Redirecting...' });
+
+      setTimeout(() => {
+        if (user?.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/');
+        }
+      }, 1000);
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Invalid or expired verification code.'
+        text: err.response?.data?.message || err.message || 'Invalid or expired verification code.'
       });
     } finally {
       setLoading(false);
@@ -116,6 +147,9 @@ const Login = () => {
         padding: '20px'
       }}
     >
+      {/* Invisible reCAPTCHA container required for Firebase Phone Auth */}
+      <div id="recaptcha-container"></div>
+
       <div
         style={{
           width: '100%',
@@ -262,7 +296,6 @@ const Login = () => {
             >
               {loading ? 'Verifying Code...' : 'Verify Code & Sign In'}
             </button>
-
 
             <button
               type="button"

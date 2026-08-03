@@ -2,7 +2,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC8jnUE_UOf392gJgQlfLI-20psmaGmRew",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "AIzaSyC8jnUE_UOf392gJgQlfLI-20psmaGmRew",
   authDomain: "shadowdine.firebaseapp.com",
   projectId: "shadowdine",
   storageBucket: "shadowdine.firebasestorage.app",
