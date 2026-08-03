@@ -37,8 +37,8 @@ const AiChatbot = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post(`${API_BASE_URL}/ai/chat`, { prompt: userText });
-      const aiReply = res.data?.reply || res.data?.message || 'I am here to help you reserve tables and pick fine dining options!';
+      const res = await axios.post(`${API_BASE_URL}/ai/chat`, { message: userText, prompt: userText });
+      const aiReply = res.data?.reply || res.data?.message || 'Welcome to ShadowDine! I can help you reserve tables at Taj Gateway Heritage, explore royal feasts, or suggest signature dishes.';
       setMessages((prev) => [...prev, { sender: 'ai', text: aiReply }]);
     } catch (err) {
       console.error('API Chat Error:', err);
@@ -51,7 +51,7 @@ const AiChatbot = () => {
           ...prev,
           {
             sender: 'ai',
-            text: '🤖 I am experiencing a temporary connection hiccup, but I can recommend trying our Chef’s Signature Biryani and Truffle Pasta!'
+            text: 'I am ready to help! You can ask about our special menu, Pasumalai Taj Gateway Heritage, or book a table.'
           }
         ]);
       }
@@ -118,7 +118,7 @@ const AiChatbot = () => {
               <span style={{ fontSize: '22px' }}>✨</span>
               <div>
                 <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: '#FFF' }}>ShadowDine AI</h3>
-                <span style={{ fontSize: '11px', color: '#4ADE80', fontWeight: '600' }}>● Powered by Gemini 2.5</span>
+                <span style={{ fontSize: '11px', color: '#4ADE80', fontWeight: '600' }}>● Powered by Gemini 1.5 Flash</span>
               </div>
             </div>
             <button
