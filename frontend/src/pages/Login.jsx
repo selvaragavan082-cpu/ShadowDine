@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import OtpInput from '../components/OtpInput';
 import { API_BASE_URL } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
+  const auth = useContext(AuthContext);
 
   // State Management
   const [step, setStep] = useState(1); // 1: Request OTP | 2: Enter OTP
@@ -134,7 +136,7 @@ const Login = () => {
         username: name.trim() || 'ragavan'
       }).catch(() => null);
 
-      const user = authRes?.data?.user || {
+      const userObj = authRes?.data?.user || {
         phone: cleanPhone,
         name: name.trim() || 'ragavan',
         role: 'user'
@@ -142,13 +144,18 @@ const Login = () => {
 
       const token = authRes?.data?.token || 'shadowdine-vip-session-token';
 
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      if (auth?.login) {
+        auth.login({ token, user: userObj });
+      } else {
+        localStorage.setItem('token', token);
+        localStorage.setItem('userToken', token);
+        localStorage.setItem('user', JSON.stringify(userObj));
+      }
 
       setMessage({ type: 'success', text: 'OTP Verified Successfully! Redirecting...' });
 
       setTimeout(() => {
-        if (user?.role === 'admin') {
+        if (userObj?.role === 'admin') {
           navigate('/admin-dashboard');
         } else {
           navigate('/');

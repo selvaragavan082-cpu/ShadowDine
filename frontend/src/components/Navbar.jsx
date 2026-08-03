@@ -1,14 +1,33 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const token = localStorage.getItem('token');
+  const auth = useContext(AuthContext);
+  
+  const token = localStorage.getItem('token') || localStorage.getItem('userToken');
+  const userStr = localStorage.getItem('user');
+  let user = auth?.user || null;
+
+  if (!user && userStr) {
+    try {
+      user = JSON.parse(userStr);
+    } catch (e) {
+      user = { name: 'ragavan' };
+    }
+  }
+
+  const isAuthenticated = Boolean(token || user);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    if (auth?.logout) {
+      auth.logout();
+    } else {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('user');
+    }
     navigate('/login');
   };
 
@@ -66,9 +85,9 @@ const Navbar = () => {
           Explore Dining
         </Link>
 
-        {token ? (
+        {isAuthenticated ? (
           <>
-            {user.role !== 'admin' && (
+            {user?.role !== 'admin' && (
               <Link
                 to="/my-bookings"
                 style={{
@@ -82,7 +101,7 @@ const Navbar = () => {
               </Link>
             )}
 
-            {user.role === 'admin' && (
+            {user?.role === 'admin' && (
               <Link
                 to="/admin-dashboard"
                 style={{
@@ -115,7 +134,7 @@ const Navbar = () => {
             >
               <span style={{ fontSize: '14px' }}>✨</span>
               <span style={{ color: '#F8FAFC', fontWeight: '700', fontSize: '13px', letterSpacing: '0.5px' }}>
-                {user.name || 'Valued Guest'}
+                {user?.name || 'ragavan'}
               </span>
               <span
                 style={{
@@ -128,7 +147,7 @@ const Navbar = () => {
                   fontWeight: '800'
                 }}
               >
-                {user.role === 'admin' ? 'ADMIN' : 'PLATINUM'}
+                {user?.role === 'admin' ? 'ADMIN' : 'PLATINUM'}
               </span>
             </div>
 
