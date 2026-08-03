@@ -1,20 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Use environment variable or direct fallback key for testing
-const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "YOUR_ACTUAL_GEMINI_KEY_HERE";
+// Generated Gemini API Key
+const GEMINI_API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "PASTE_YOUR_COPIED_GEMINI_KEY_HERE";
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export const getFoodRecommendation = async (userPreference) => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const prompt = `You are ShadowDine AI. Suggest dishes or answer for: "${userPreference}"`;
+    const prompt = `You are an AI assistant for ShadowDine restaurant. Answer the user nicely: "${userPreference}"`;
     
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
   } catch (error) {
-    console.error("Gemini AI Exact Error:", error);
+    console.error("Gemini API Error details:", error);
     throw error;
   }
 };
