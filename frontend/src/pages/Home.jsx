@@ -36,16 +36,6 @@ const DEFAULT_DEMO_HOTELS = [
     location: { lat: 13.0604, lng: 80.2496 }
   },
   {
-    _id: 'demo_hotel_4',
-    name: 'Royal Orchid Rooftop',
-    city: 'Coimbatore',
-    address: 'Avinashi Road, Coimbatore, Tamil Nadu',
-    rating: '4.7 ⭐',
-    cuisine: 'North Indian, Asian Fusion & Bakery',
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600',
-    location: { lat: 11.0168, lng: 76.9558 }
-  },
-  {
     _id: 'demo_hotel_5',
     name: 'Taj Gateway Heritage',
     city: 'Madurai',
@@ -96,8 +86,11 @@ const Home = () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/hotels`);
         const apiHotels = res.data?.hotels || (Array.isArray(res.data) ? res.data : []);
-        if (apiHotels && apiHotels.length > 0) {
-          setHotels(apiHotels);
+        const filteredApiHotels = apiHotels.filter(
+          (h) => h.name !== 'Royal Orchid Rooftop' && h._id !== 'demo_hotel_4'
+        );
+        if (filteredApiHotels && filteredApiHotels.length > 0) {
+          setHotels(filteredApiHotels);
         } else {
           setHotels(DEFAULT_DEMO_HOTELS);
         }
